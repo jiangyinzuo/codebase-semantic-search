@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codebase"
+version = "0.1.0"
+authors = [
+    { name="Yinzuo Jiang", email="jiangyinzuo@foxmail.com" },
+]
+description = "A command-line tool for indexing and searching codebase."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "numpy",
+    "psycopg[binary]",
+    "sentence_transformers",
+    "tree_sitter",
+    "jsonc-parser",
+]
+
+[project.scripts]
+# 这就是定义全局可执行脚本的地方
+# 格式为: <命令名> = "<包名>.<模块名>:<函数名>"
+
+# 运行 codebase-index 命令时，会执行 codebase.indexing 模块的 main() 函数
+"codebase-index" = "codebase.indexing:main"
+
+# 运行 codebase-search 命令时，会执行 codebase.search 模块的 main() 函数
+"codebase-search" = "codebase.search:main"
