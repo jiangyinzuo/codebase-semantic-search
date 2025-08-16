@@ -1,5 +1,15 @@
 # Codebase Semantic Search
 
+Codebase indexing and search tool in command line and Neovim.
+
+**Features:**
+
+- Embedding: OpenAI-compatible embedding API / sentence_transformer support
+- AST-based code chunker via treesitter
+- Command-line tool & Neovim plugin integration
+
+[Screenshots](https://github.com/jiangyinzuo/codebase-semantic-search/wiki#screenshots)
+
 ## How to Use
 ### Installation
 
@@ -69,13 +79,29 @@ echo "Indexer" | codebase-search
 
 ```
 
-## Architecture
-### Chunk
+### Configuration
 
-AST-based + LLM-based chunking
+Global configuration is in `$XDG_CONFIG_HOME/codebase/config.jsonc`
 
-### Embedding Model
-See: https://huggingface.co/spaces/mteb/leaderboard
+```jsonc
+{
+  "pgvector": {
+    "dbname": "codebase_indexing",
+    "user": "postgres",
+    "host": "127.0.0.1",
+    // is string
+    "port": "5439"
+  },
+  // openai | sentence_transformer
+  "model_provider": "openai",
+  "openai": {
+    "url": "http://localhost:8000"
+  },
+  // the last '/' matters
+  // See: https://huggingface.co/spaces/mteb/leaderboard to pickup an embedding model
+  "model": "/home/jiangyinzuo/Qwen3-Embedding-0.6B/"
+}
+```
 
 ## Neovim Plugin
 
@@ -91,3 +117,8 @@ lazy.nvim
 }
 
 ```
+
+### Usage
+
+- `:Codebase` command: open search panel
+- [Snippets example](https://github.com/jiangyinzuo/codebase-semantic-search/wiki/Snippet-Example)

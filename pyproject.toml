@@ -23,6 +23,7 @@ dependencies = [
     "sentence_transformers",
     "tree_sitter",
     "jsonc-parser",
+    "tabulate",
 ]
 
 [project.scripts]

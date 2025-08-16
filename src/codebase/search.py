@@ -1,6 +1,7 @@
 def main():
     import argparse
     import sys
+    from tabulate import tabulate
 
     parser = argparse.ArgumentParser(description="Run SQL to search codebase.")
     parser.add_argument("--dbname", type=str, default="", help="PGVector database name")
@@ -45,9 +46,7 @@ def main():
 
     pgvector_connector = PGVectorConnector()
     records = pgvector_connector.execute_select(args.sql, sql_params)
-
-    for record in records:
-        print(record[0])
+    print(tabulate(records, tablefmt="plain"))
 
 
 if __name__ == "__main__":

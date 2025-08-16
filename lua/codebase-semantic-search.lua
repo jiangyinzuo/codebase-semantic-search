@@ -19,21 +19,21 @@ end
 local function commit_function()
 	assert(codebase_panel_buf, "Codebase panel buffer not found")
 	local extmarks = vim.api.nvim_buf_get_extmarks(codebase_panel_buf, codebase_ns, 0, -1, {})
+	-- print("Codebase namespace:", codebase_ns)
 
-	local database_name = vim.api.nvim_buf_get_lines(codebase_panel_buf, extmarks[1][2], extmarks[2][2], false)
+	local database_name = vim.api.nvim_buf_get_lines(codebase_panel_buf, extmarks[2][2], extmarks[3][2], false)
 	-- concatenate the lines into a single string, remove \n and space at the beginning and end
 	database_name = table.concat(database_name, "\n")
 	database_name = database_name:gsub("^%s*(.-)%s*$", "%1") -- 去除首尾空格
 
-	local user_query_text = vim.api.nvim_buf_get_lines(codebase_panel_buf, extmarks[2][2], extmarks[3][2], false)
+	local user_query_text = vim.api.nvim_buf_get_lines(codebase_panel_buf, extmarks[3][2], extmarks[4][2], false)
 	user_query_text = table.concat(user_query_text, "\n")
 
-	local sql = vim.api.nvim_buf_get_lines(codebase_panel_buf, extmarks[3][2], extmarks[4][2], false)
+	local sql = vim.api.nvim_buf_get_lines(codebase_panel_buf, extmarks[4][2], extmarks[5][2], false)
 	sql = table.concat(sql, "\n")
 
 	-- clear the line below "Results"
-	vim.api.nvim_buf_set_lines(codebase_panel_buf, extmarks[4][2], -1, false, { "" })
-
+	vim.api.nvim_buf_set_lines(codebase_panel_buf, extmarks[5][2], -1, false, { "" })
 	-- run command
 	Job:new({
 		command = "codebase-search",
@@ -124,7 +124,7 @@ function M.open_codebase_panel()
 
 	-- See: https://www.nerdfonts.com/
 	local head_extmarks = {
-		{ { "Keymaps:  <C-S> -> submit", "Question" } },
+		{ { "Keymaps:  <C-S> -> submit | <leader>tb -> open schema in preview window", "Question" } },
 		{ { "Snippets: allfile | basic", "Keyword" } },
 		{ { "", "NonText" } },
 	}
@@ -143,6 +143,11 @@ function M.open_codebase_panel()
 		commit_function,
 		{ buffer = codebase_panel_buf, noremap = true, silent = true, desc = "Submit Codebase Query" }
 	)
+	vim.keymap.set("n", "<leader>tb", function()
+		local current_script_path = debug.getinfo(1, "S").source:sub(2)
+		local create_sql_file = vim.fs.dirname(vim.fs.dirname(current_script_path)) .. "/create_tables.sql"
+		vim.cmd("pedit " .. create_sql_file)
+	end, { buffer = codebase_panel_buf, noremap = true, silent = true, desc = "Open Schema in Preview Window" })
 end
 
 return M

@@ -1,5 +1,4 @@
 CREATE EXTENSION IF NOT EXISTS vector;
-CREATE TYPE chunk_type AS ENUM ('file', 'snippet');
 
 -- 父表：包含所有类型都共享的字段
 CREATE TABLE IF NOT EXISTS code_chunks (

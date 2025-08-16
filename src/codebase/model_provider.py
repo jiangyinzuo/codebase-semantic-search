@@ -99,10 +99,10 @@ class OpenAICompatibleProvider(ModelProvider):
 def __create_embedding_model():
     if CONFIG["model_provider"] == "openai":
         return OpenAICompatibleProvider(
-            CONFIG["model"]["name"], CONFIG["openai"]["url"]
+            CONFIG["model"], CONFIG["openai"]["url"]
         )
     elif CONFIG["model_provider"] == "sentence_transformer":
-        return SentenceTransformerProvider(CONFIG["model"]["name"])
+        return SentenceTransformerProvider(CONFIG["model"])
     raise ValueError(f"Unsupported model provider: {CONFIG['model_provider']}")
 
 
