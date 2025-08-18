@@ -10,7 +10,7 @@ authors = [
 ]
 description = "A command-line tool for indexing and searching codebase."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -27,11 +27,8 @@ dependencies = [
 ]
 
 [project.scripts]
-# 这就是定义全局可执行脚本的地方
+# 定义全局可执行脚本
 # 格式为: <命令名> = "<包名>.<模块名>:<函数名>"
 
-# 运行 codebase-index 命令时，会执行 codebase.indexing 模块的 main() 函数
-"codebase-index" = "codebase.indexing:main"
-
-# 运行 codebase-search 命令时，会执行 codebase.search 模块的 main() 函数
-"codebase-search" = "codebase.search:main"
+# 运行 codebase 命令时，会执行 codebase.cli 模块的 main() 函数
+"codebase" = "codebase.cli:main"

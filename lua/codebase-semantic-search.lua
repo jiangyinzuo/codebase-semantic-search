@@ -4,6 +4,7 @@ local Job = require("plenary.job")
 local codebase_ns = vim.api.nvim_create_namespace("codebase_panel_ns")
 -- print("Namespace created with ID:", codebase_ns)
 local codebase_panel_buf = nil
+local codebase_config = nil
 
 ---@param virt_lines 虚拟行内容
 ---@param line number 行号(0-based index)
@@ -12,6 +13,7 @@ local function set_extmarks(virt_lines, line)
 		virt_lines = virt_lines,
 		virt_lines_leftcol = false,
 		virt_lines_above = true,
+		virt_lines_overflow = "scroll",
 		right_gravity = false,
 	})
 end
@@ -35,9 +37,11 @@ local function commit_function()
 	-- clear the line below "Results"
 	vim.api.nvim_buf_set_lines(codebase_panel_buf, extmarks[5][2], -1, false, { "" })
 	-- run command
+	local command = "codebase"
+	local args = { "search", "--dbname", database_name, "--query_text", user_query_text, "--sql", sql }
 	Job:new({
-		command = "codebase-search",
-		args = { "--dbname", database_name, "--query_text", user_query_text, "--sql", sql },
+		command = command,
+		args = args,
 		cwd = "~",
 
 		-- 回调函数，处理标准输出
@@ -77,10 +81,22 @@ local function commit_function()
 	}):start()
 end
 
+local function run_codebase_config_async()
+	return vim.system({ "codebase", "config" }, { text = true }, function(obj)
+		codebase_config = vim.json.decode(obj.stdout)
+	end)
+end
+
 local M = {}
 
 -- 定义一个函数来创建和设置 UI
 function M.open_codebase_panel()
+	if vim.fn.executable("codebase") == 0 then
+		vim.notify("codebase command not found. Please install it first.", vim.log.levels.ERROR)
+		return
+	end
+
+	local codebase_config_async_command = run_codebase_config_async()
 	if codebase_panel_buf and vim.api.nvim_buf_is_valid(codebase_panel_buf) then
 		-- 如果缓冲区已经存在且有效，直接切换到该缓冲区
 		vim.cmd("vsplit")
@@ -90,28 +106,25 @@ function M.open_codebase_panel()
 
 	-- create a buffer and configure it
 	codebase_panel_buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_option(codebase_panel_buf, "buftype", "nofile") -- 非文件缓冲区
-	vim.api.nvim_buf_set_option(codebase_panel_buf, "swapfile", false)
-	vim.api.nvim_buf_set_option(codebase_panel_buf, "filetype", "codebase_panel")
+	vim.api.nvim_set_option_value("buftype", "nofile", { buf = codebase_panel_buf }) -- 非文件缓冲区
+	vim.api.nvim_set_option_value("swapfile", false, { buf = codebase_panel_buf }) -- 不创建 swapfile
+	vim.api.nvim_set_option_value("filetype", "codebase_panel", { buf = codebase_panel_buf }) -- 设置文件类型为 codebase_panel
 	vim.api.nvim_buf_set_name(codebase_panel_buf, "Codebase-Panel")
 
+	codebase_config_async_command:wait()
+	assert(codebase_config, "Codebase config not found.")
 	-- 3. 在新缓冲区中写入初始内容
 	local lines = {
-		"codebase_indexing", -- Database Name 所在行
+		codebase_config["pgvector"]["dbname"], -- Database Name 所在行
 		"",
 		"", -- 数据库名称输入
 		"", -- User Query Text 所在行
 		"", -- 用户输入
-		"SELECT file_path",
-		"FROM code_chunks",
-		"-- always use double %%",
-		"-- WHERE file_path LIKE '%%.py'",
-		"-- a placeholder for the embedding vector",
-		"ORDER BY embedding <-> %(embedding)s::vector",
-		"LIMIT 10;",
-		"",
-		"", -- Result 所在行
 	}
+	local default_sql = codebase_config["pgvector"]["default_sql"]
+	local sql_lines = vim.split(default_sql, "\n", { trimempty = true, plain = true })
+	vim.list_extend(lines, sql_lines)
+	vim.list_extend(lines, { "", "" }) -- Result所在行
 	vim.api.nvim_buf_set_lines(codebase_panel_buf, 0, -1, false, lines)
 
 	-- 4. 垂直分屏打开这个缓冲区
@@ -124,8 +137,25 @@ function M.open_codebase_panel()
 
 	-- See: https://www.nerdfonts.com/
 	local head_extmarks = {
-		{ { "Keymaps:  <C-S> -> submit | <leader>tb -> open schema in preview window", "Question" } },
-		{ { "Snippets: allfile | basic", "Keyword" } },
+		{
+			{
+				"Keymaps:  <C-S> -> submit",
+				"Question",
+			},
+		},
+		{
+			{
+				"          <leader>tb -> open schema in preview window",
+				"Question",
+			},
+		},
+		{
+			{
+				"          <leader>cf -> open codebase config in preview window",
+				"Question",
+			},
+		},
+		{ { "Snippets: all_file | basic", "Keyword" } },
 		{ { "", "NonText" } },
 	}
 	set_extmarks(head_extmarks, 0)
@@ -148,6 +178,25 @@ function M.open_codebase_panel()
 		local create_sql_file = vim.fs.dirname(vim.fs.dirname(current_script_path)) .. "/create_tables.sql"
 		vim.cmd("pedit " .. create_sql_file)
 	end, { buffer = codebase_panel_buf, noremap = true, silent = true, desc = "Open Schema in Preview Window" })
+	vim.keymap.set(
+		"n",
+		"<leader>cf",
+		function()
+			local codebase_config_async_command = run_codebase_config_async()
+			-- create a temporary buffer to show the config
+			local config_buffer = vim.api.nvim_create_buf(false, true)
+			vim.api.nvim_set_option_value("buftype", "nofile", { buf = config_buffer }) -- 非文件缓冲区
+			vim.api.nvim_set_option_value("swapfile", false, { buf = config_buffer })
+			vim.api.nvim_set_option_value("filetype", "json", { buf = config_buffer })
+			local result = codebase_config_async_command:wait()
+			-- split the result into lines
+			local result_stdout_array = vim.split(result.stdout, "\n", { trimemtpy = true, plain = true })
+			-- write result to the buffer
+			vim.api.nvim_buf_set_lines(config_buffer, 0, -1, false, result_stdout_array)
+			vim.cmd("pbuffer" .. config_buffer)
+		end,
+		{ buffer = codebase_panel_buf, noremap = true, silent = true, desc = "Open Codebase Config in Preview Window" }
+	)
 end
 
 return M

@@ -3,6 +3,7 @@ from codebase.pgvector import PGVectorConnector
 from codebase.ts_chunk import remove_header_junk
 from tree_sitter import Language
 from codebase.model_provider import EMBEDDING_MODEL, ModelProvider
+from argparse import Namespace
 
 
 class Indexer:
@@ -29,7 +30,9 @@ class Indexer:
 
         return embedding, content
 
-    def process_files(self, updater: PGVectorConnector, files_to_add: str, files_to_delete: str) -> None:
+    def process_files(
+        self, updater: PGVectorConnector, files_to_add: str, files_to_delete: str
+    ) -> None:
         files_to_add_list: list[str] = files_to_add.split()
         for file_path in files_to_add_list:
             p = Path(file_path.strip())
@@ -50,17 +53,10 @@ class Indexer:
         updater.flush()
 
 
-def main():
-    import argparse
+def main(args: Namespace):
     import tree_sitter_python
     import tree_sitter_cpp
 
-    parser = argparse.ArgumentParser(description="Update codebase index.")
-    parser.add_argument("--dbname", type=str, default="", help="PGVector database name")
-    parser.add_argument("--add", "-a", type=str, default="", help="Files to add")
-    parser.add_argument("--delete", "-d", type=str, default="", help="Files to delete")
-
-    args = parser.parse_args()
     if len(args.dbname) > 0:
         from pgvector import CONFIG
 
@@ -76,6 +72,3 @@ def main():
     indexer = Indexer(EMBEDDING_MODEL, language_map)
     indexer.process_files(updater, args.add, args.delete)
 
-
-if __name__ == "__main__":
-    main()

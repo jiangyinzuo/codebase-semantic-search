@@ -65,10 +65,18 @@ class PGVectorConnector:
                 self.conn.rollback()
 
     def execute_select(self, sql: str, sql_params: dict):
+        """
+        执行 SELECT 查询并返回结果。
+
+        :param sql: SQL 查询语句
+        :param sql_params: 查询参数字典
+        :return: 包含列名和查询结果的元组 (column_names, results)
+        """
         try:
             self.cur.execute(sql, sql_params)
             results = self.cur.fetchall()
-            return results
+            column_names = [desc[0] for desc in self.cur.description] if self.cur.description else None
+            return column_names, results
 
         except (Exception, psycopg.DatabaseError) as error:
             print(f"执行查询时出错: {error}")

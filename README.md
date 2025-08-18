@@ -71,17 +71,17 @@ The result may be:
 
 ```bash
 # indexing
-ls *.py | codebase-indexing
+codebase index -a "`ls`"
 # searching
 psql -h 127.0.0.1 -p 5439 -U postgres -d codebase_indexing -c "select file_path from code_chunks"
 psql -h 127.0.0.1 -p 5439 -U postgres -d codebase_indexing -c "select code_text from code_chunks where file_path = 'indexing.py'"
-echo "Indexer" | codebase-search
-
+codebase search -q "your search query"
 ```
 
 ### Configuration
 
-Global configuration is in `$XDG_CONFIG_HOME/codebase/config.jsonc`
+Global configuration is in `$XDG_CONFIG_HOME/codebase/config.jsonc`.
+Project-local configuration is in `.codebase/config.jsonc`.
 
 ```jsonc
 {
@@ -104,6 +104,10 @@ Global configuration is in `$XDG_CONFIG_HOME/codebase/config.jsonc`
 ```
 
 ## Neovim Plugin
+
+**Requirements:**
+
+- Neovim >= 0.11.0
 
 ### Installation
 
