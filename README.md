@@ -1,128 +1,152 @@
 # Codebase Semantic Search
 
-Codebase indexing and search tool in command line and Neovim.
-
-**Features:**
-
-- Embedding: OpenAI-compatible embedding API / sentence_transformer support
-- AST-based code chunker via treesitter
-- Command-line tool & Neovim plugin integration
+A powerful codebase indexing and semantic search tool with command-line interface and Neovim plugin integration.
 
 [Screenshots](https://github.com/jiangyinzuo/codebase-semantic-search/wiki#screenshots)
 
-## How to Use
+## Overview
+
+Codebase Semantic Search enables semantic search capabilities over your codebase using modern embedding models. It indexes source code files and allows searching for code snippets based on semantic similarity rather than text matching.
+
+**Key Features:**
+- **Semantic Code Search**: Find code based on meaning and functionality
+- **Multi-language Support**: Python, C++, and extensible via Tree-sitter
+- **Flexible Backends**: Local sentence-transformers and OpenAI-compatible APIs
+- **Neovim Integration**: Seamless editor workflow integration
+- **Vector Database**: PostgreSQL with pgvector for efficient similarity search
+- **Flexible Configuration**: Global and project-specific JSONC configuration
+
+## Quick Start
+
 ### Installation
 
-**Build and Install Python Package**
+1. **Install Python Package:**
+   ```bash
+   python -m build
+   pip install .
+   ```
 
-```bash
-python -m build
-pip install .
-```
+2. **Setup PostgreSQL with pgvector:**
+   ```bash
+   docker pull pgvector/pgvector:0.8.0-pg17
+   docker run --name codebase-indexing -e POSTGRES_HOST_AUTH_METHOD=trust -p 5439:5432 -d pgvector/pgvector:0.8.0-pg17
+   ```
 
-**Install PGVector via Docker**
+3. **Create Database:**
+   ```bash
+   createdb -h 127.0.0.1 -p 5439 -U postgres codebase_indexing
+   psql -h 127.0.0.1 -p 5439 -U postgres -d codebase_indexing -f create_tables.sql -v dim=1024
+   ```
 
-```bash
-docker pull pgvector/pgvector:0.8.0-pg17
-# POSTGRES_HOST_AUTH_METHOD=trust: Allows connections without a password
-# -d: run in detached mode
-# -p: host:container port mapping, `sudo lsof -i :5432` to see if port is in use
-docker run --name codebase-indexing-jyz -e POSTGRES_HOST_AUTH_METHOD=trust -p 5439:5432 -d pgvector/pgvector:0.8.0-pg17
-```
+4. **Index and Search:**
+   ```bash
+   # Index files
+   codebase index -a "`ls`"
+   
+   # Search semantically
+   codebase search -q "your search query"
+   ```
 
-### Connect to PGVector
+## Configuration
 
-1) Connect from host
-```bash
-psql -h 127.0.0.1 -p 5439 -U postgres
-# or
-psql -h 127.0.0.1 -p 5439 -U postgres -c "SELECT version();"
-```
+Configuration supports both global (`~/.config/codebase/config.jsonc`) and project-specific (`.codebase/config.jsonc`) settings with recursive merging.
 
-2) Connect from container
-```bash
-docker exec -it codebase-indexing-jyz psql -U postgres
-```
-
-### Create Database & Tables
-
-```bash
-createdb -h 127.0.0.1 -p 5439 -U postgres codebase_indexing
-psql -h 127.0.0.1 -p 5439 -U postgres -d codebase_indexing -f create_tables.sql -v dim=1024
-# drop table
-psql -h 127.0.0.1 -p 5439 -U postgres -c 'drop database codebase_indexing'
-```
-
-
-### Run Model as Local vLLM Service (Optional)
-
-```bash
-vllm serve /home/jiangyinzuo/Qwen3-Embedding-0.6B/ --task embed
-# list models, avoid squid http proxy
-no_proxy="localhost,127.0.0.1" curl localhost:8000/v1/models
-```
-
-The result may be:
-```json
-{"object":"list","data":[{"id":"/home/jiangyinzuo/Qwen3-Embedding-0.6B/","object":"model","created":1755255045,"owned_by":"vllm","root":"/home/jiangyinzuo/Qwen3-Embedding-0.6B/","parent":null,"max_model_len":32768,"permission":[{"id":"modelperm-d53a57a6eba647fa84deb69634726767","object":"model_permission","created":1755255045,"allow_create_engine":false,"allow_sampling":true,"allow_logprobs":true,"allow_search_indices":false,"allow_view":true,"allow_fine_tuning":false,"organization":"*","group":null,"is_blocking":false}]}]}
-```
-
-### Indexing & Searching
-
-```bash
-# indexing
-codebase index -a "`ls`"
-# searching
-psql -h 127.0.0.1 -p 5439 -U postgres -d codebase_indexing -c "select file_path from code_chunks"
-psql -h 127.0.0.1 -p 5439 -U postgres -d codebase_indexing -c "select code_text from code_chunks where file_path = 'indexing.py'"
-codebase search -q "your search query"
-```
-
-### Configuration
-
-Global configuration is in `$XDG_CONFIG_HOME/codebase/config.jsonc`.
-Project-local configuration is in `.codebase/config.jsonc`.
-
+Example configuration:
 ```jsonc
 {
   "pgvector": {
     "dbname": "codebase_indexing",
-    "user": "postgres",
+    "user": "postgres", 
     "host": "127.0.0.1",
-    // is string
-    "port": "5439"
+    "port": "5439",
+    "default_sql": "SELECT query for Neovim plugin"
   },
-  // openai | sentence_transformer
-  "model_provider": "openai",
-  "openai": {
-    "url": "http://localhost:8000"
-  },
-  // the last '/' matters
-  // See: https://huggingface.co/spaces/mteb/leaderboard to pickup an embedding model
+  "model_provider": "openai",  // or "sentence_transformer"
+  "openai": {"url": "http://localhost:8000"},
   "model": "/home/jiangyinzuo/Qwen3-Embedding-0.6B/"
 }
 ```
 
 ## Neovim Plugin
 
-**Requirements:**
+**Requirements**: Neovim >= 0.11.0, `plenary.nvim`
 
-- Neovim >= 0.11.0
-
-### Installation
-
-lazy.nvim
+**Installation** (lazy.nvim):
 ```lua
 {
   "jiangyinzuo/codebase-semantic-search",
-  dependencies = {
-    "nvim-lua/plenary.nvim",
-  },
+  dependencies = {"nvim-lua/plenary.nvim"},
 }
-
 ```
 
-### Usage
+**Usage**:
+- `:Codebase` - Open search panel
+- `<C-S>` - Submit query
+- `<leader>tb` - View schema
+- `<leader>cf` - View configuration
 
-- `:Codebase` command: open search panel
-- [Snippets example](https://github.com/jiangyinzuo/codebase-semantic-search/wiki/Snippet-Example)
+[Snippets example](https://github.com/jiangyinzuo/codebase-semantic-search/wiki/Snippet-Example)
+
+## Advanced Usage
+
+### CLI Commands
+
+- **Indexing**: `codebase index -a "files" -d "files_to_remove" --dbname custom_db`
+- **Searching**: `codebase search -q "query" --dbname custom_db --sql "CUSTOM_SQL"`
+- **Configuration**: `codebase config` shows merged settings
+
+### Database Schema
+
+Uses PostgreSQL with pgvector extension:
+```sql
+CREATE TABLE code_chunks (
+    id SERIAL PRIMARY KEY,
+    file_path VARCHAR(255) NOT NULL UNIQUE,
+    code_text TEXT NOT NULL,
+    embedding vector(1024)
+);
+```
+
+### Supported Languages
+
+- Python (`.py`) via Tree-sitter
+- C++ (`.cpp`, `.hpp`) via Tree-sitter
+- Extensible to other languages
+
+## Troubleshooting
+
+**Common Issues**:
+- Database connection: Check PostgreSQL/pgvector running and config
+- Model not found: Verify model path and vLLM service
+- No results: Ensure proper indexing and model compatibility
+- Neovim issues: Check `codebase` in PATH and Neovim version
+
+**Performance Tips**:
+- Use local sentence-transformers for faster indexing
+- Batch process large codebases
+- Clean up unused indexed files
+
+## Development
+
+**Project Structure**:
+```
+src/codebase/
+├── cli.py          # CLI interface
+├── config.py       # Configuration  
+├── indexing.py     # File indexing
+├── model_provider.py # Embedding models
+├── pgvector.py     # PostgreSQL
+├── search.py       # Search
+└── ts_chunk.py     # Tree-sitter
+```
+
+**Extending Languages**:
+1. Install Tree-sitter grammar
+2. Add mapping in `indexing.py`
+3. Test with `ts_chunk.py`
+
+**Contributing**: Follow code style, add tests, update docs.
+
+## License
+
+MIT License - see [LICENSE](LICENSE)

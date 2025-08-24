@@ -8,6 +8,7 @@ class PGVectorConnector:
         self,
         db_params: dict[str, str] = CONFIG["pgvector"],
     ):
+        del db_params["default_sql"]
         self.db_params: dict[str, str] = db_params
         self.chunks: list[tuple] = []
         self.files_to_remove: list[str] = []
@@ -32,8 +33,10 @@ class PGVectorConnector:
         self.files_to_remove.append(file_path)
 
     def flush(self):
-        if len(self.chunks) == 0:
+        if len(self.chunks) == 0 and len(self.files_to_remove) == 0:
             print("没有数据需要插入。")
+            # Commit any pending transaction to avoid leaving it in inconsistent state
+            self.conn.commit()
             return
         try:
             delete_query = """
@@ -81,3 +84,25 @@ class PGVectorConnector:
         except (Exception, psycopg.DatabaseError) as error:
             print(f"执行查询时出错: {error}")
             return []
+
+    def get_last_commit_hash(self) -> str | None:
+        """获取最后一次索引的commit hash"""
+        try:
+            self.cur.execute("SELECT last_commit_hash FROM index_metadata WHERE id = 1")
+            result = self.cur.fetchone()
+            return result[0] if result else None
+        except psycopg.Error:
+            # 表可能不存在，返回None
+            return None
+
+    def update_last_commit_hash(self, commit_hash: str):
+        """更新最后一次索引的commit hash"""
+        try:
+            self.cur.execute(
+                "UPDATE index_metadata SET last_commit_hash = %s, indexed_at = CURRENT_TIMESTAMP WHERE id = 1",
+                (commit_hash,)
+            )
+            self.conn.commit()
+        except psycopg.Error as e:
+            print(f"更新commit hash失败: {e}")
+            self.conn.rollback()

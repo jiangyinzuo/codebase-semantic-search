@@ -15,6 +15,19 @@ def main():
         "--delete", "-d", type=str, default="", help="Files to delete"
     )
 
+    # - codebase index --git → args.git = "HEAD" (const value)
+    # - codebase index --git abc123 → args.git = "abc123" (provided
+    #   value)
+    # - codebase index (no --git) → args.git = None (default value)
+    index_parser.add_argument(
+        "--git",
+        type=str,
+        nargs="?",
+        const="HEAD",
+        default=None,
+        help="Use git to detect changes since specified commit (default: HEAD)",
+    )
+
     config_parser = subparsers.add_parser("config", help="Show configuration")
 
     search_parser = subparsers.add_parser("search", help="Search the codebase")

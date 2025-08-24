@@ -10,3 +10,15 @@ CREATE TABLE IF NOT EXISTS code_chunks (
 
 CREATE INDEX file_path_idx ON code_chunks (file_path);
 CREATE INDEX ON code_chunks USING hnsw (embedding vector_cosine_ops);
+
+-- 存储索引元数据（单条记录）
+CREATE TABLE IF NOT EXISTS index_metadata (
+    id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    last_commit_hash VARCHAR(40),
+    indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 插入初始记录
+INSERT INTO index_metadata (id, last_commit_hash) 
+VALUES (1, NULL)
+ON CONFLICT (id) DO NOTHING;

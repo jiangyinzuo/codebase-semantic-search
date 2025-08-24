@@ -26,6 +26,12 @@ dependencies = [
     "tabulate",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-mock",
+]
+
 [project.scripts]
 # 定义全局可执行脚本
 # 格式为: <命令名> = "<包名>.<模块名>:<函数名>"

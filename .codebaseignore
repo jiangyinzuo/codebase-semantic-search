@@ -1,0 +1,18 @@
+# 忽略测试文件
+*_test.py
+*_test.cpp
+test_*.py
+test_*.cpp
+
+# 忽略构建文件
+build/
+dist/
+*.egg-info/
+
+# 忽略隐藏文件
+.*
+
+# 忽略文档文件
+*.md
+*.txt
+*.rst
