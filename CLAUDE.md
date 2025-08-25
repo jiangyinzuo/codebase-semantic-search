@@ -48,6 +48,9 @@ python run_integration_tests.py --with-db
 
 # Run unit tests only (no database required)
 python run_integration_tests.py --unit-only
+
+# Run MCP server tests
+pytest tests/test_mcp_server.py -v --asyncio-mode=auto
 ```
 
 **CLI Usage:**
@@ -60,6 +63,9 @@ codebase search -q "function that handles authentication"
 
 # Show configuration
 codebase config
+
+# Start MCP server for AI assistants
+codebase-mcp
 ```
 
 ## Architecture Overview
@@ -68,6 +74,7 @@ codebase config
 - `src/codebase/cli.py`: Command-line interface with subcommands for index/search/config
 - `src/codebase/config.py`: Hierarchical configuration system (global + project-specific JSONC)
 - `src/codebase/indexing.py`: File processing and Tree-sitter based code chunking
+- `src/codebase/mcp_server.py`: MCP server for AI assistant integration
 - `src/codebase/model_provider.py`: Embedding model abstraction (OpenAI API + local sentence-transformers)
 - `src/codebase/pgvector.py`: PostgreSQL with pgvector database operations
 - `src/codebase/search.py`: Semantic search functionality
@@ -81,6 +88,7 @@ codebase config
 - psycopg2 for PostgreSQL connectivity
 - numpy for vector operations
 - tabulate for CLI output formatting
+- mcp[cli] for MCP server functionality
 
 **Neovim Integration:**
 - `lua/codebase-semantic-search.lua`: Main plugin implementation
@@ -103,7 +111,7 @@ Supports hierarchical configuration merging:
 
 ## Development Notes
 
-- **Testing**: Basic pytest test suite exists in `tests/` directory with mocking support
+- **Testing**: Basic pytest test suite exists in `tests/` directory with mocking support, including MCP server integration tests
 - **Python Version**: Requires Python 3.10+ (uses match statements, type hints)
 - **Packaging**: Built with setuptools via pyproject.toml
 - **Neovim Integration**: Requires plenary.nvim dependency

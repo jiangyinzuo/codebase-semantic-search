@@ -24,12 +24,15 @@ dependencies = [
     "tree_sitter",
     "jsonc-parser",
     "tabulate",
+    "mcp[cli]",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest",
     "pytest-mock",
+    "pytest-asyncio",
+    "httpx",
 ]
 
 [project.scripts]
@@ -38,3 +41,6 @@ test = [
 
 # 运行 codebase 命令时，会执行 codebase.cli 模块的 main() 函数
 "codebase" = "codebase.cli:main"
+
+# MCP server for codebase semantic search
+"codebase-mcp" = "codebase.mcp_server:main"
